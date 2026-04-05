@@ -63,27 +63,7 @@ export const SAMPLE_PRODUCTS: Product[] = [
     stock: 150,
     imageUrl:
       "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&h=400&fit=crop",
-  },
-  {
-    id: "p-charger",
-    name: "USB-C Cable",
-    categoryId: "cat-retail",
-    price: 199,
-    barcode: "4800123456833",
-    sku: "RT-UC-01",
-    stock: 25,
-    imageUrl:
-      "https://images.unsplash.com/photo-1583863788442-2413e6632633?w=400&h=400&fit=crop",
-  },
-  {
-    id: "p-battery",
-    name: "AA Batteries (4pk)",
-    categoryId: "cat-retail",
-    price: 120,
-    barcode: "4800123456840",
-    sku: "RT-BT-01",
-    stock: 30,
-  },
+  }
 ];
 
 export const VAT_RATE = 0.12;
