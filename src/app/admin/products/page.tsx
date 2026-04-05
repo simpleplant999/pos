@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { usePos } from "@/context/PosProvider";
 import { formatPhp } from "@/lib/pos/money";
 import { splitGrossToNetVat } from "@/lib/pos/totals";
@@ -37,6 +37,12 @@ export default function AdminProductsPage() {
   const [modal, setModal] = useState<ModalState>({ open: false });
   const [draft, setDraft] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  const filteredProducts = useMemo(() => {
+    if (categoryFilter === "all") return products;
+    return products.filter((p) => p.categoryId === categoryFilter);
+  }, [products, categoryFilter]);
 
   function openCreate() {
     const cat = categories[0];
@@ -159,13 +165,34 @@ export default function AdminProductsPage() {
           Catalog is in memory until you add a backend (resets on full page reload). Adding a product
           opens a form—nothing is saved to the list until you tap Save.
         </p>
-        <button
-          type="button"
-          className="mb-4 min-h-11 rounded-xl bg-emerald-600 px-4 font-semibold text-white"
-          onClick={openCreate}
-        >
-          Add product
-        </button>
+        <div className="mb-4 flex flex-wrap items-end gap-3">
+          <label className="text-sm">
+            <span className="block text-zinc-500">Category</span>
+            <select
+              className="mt-1 min-h-11 min-w-[12rem] rounded-xl border border-zinc-200 bg-white px-3"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              aria-label="Filter products by category"
+            >
+              <option value="all">All categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="min-h-11 rounded-xl bg-emerald-600 px-4 font-semibold text-white"
+            onClick={openCreate}
+          >
+            Add product
+          </button>
+        </div>
+        <p className="mb-2 text-xs text-zinc-500">
+          Showing {filteredProducts.length} of {products.length} product{products.length === 1 ? "" : "s"}
+        </p>
         <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-zinc-200 bg-zinc-50">
@@ -180,7 +207,16 @@ export default function AdminProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
+              {filteredProducts.length === 0 ? (
+                <tr>
+                  <td className="p-6 text-center text-sm text-zinc-500" colSpan={7}>
+                    {products.length === 0
+                      ? "No products yet. Add one to get started."
+                      : "No products in this category."}
+                  </td>
+                </tr>
+              ) : null}
+              {filteredProducts.map((p) => (
                 <tr key={p.id} className="border-b border-zinc-100">
                   <td className="p-3 font-medium">{p.name}</td>
                   <td className="p-3 text-zinc-600">
