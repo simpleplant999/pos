@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePos } from "@/context/PosProvider";
 import { formatPhp } from "@/lib/pos/money";
+import { splitGrossToNetVat } from "@/lib/pos/totals";
 import type { Product, ProductVariant } from "@/types/pos";
 
 function newId(): string {
@@ -19,8 +20,20 @@ function emptyVariants(): ProductVariant[] {
   return [];
 }
 
+function PriceVatHint({ price, vatRate }: { price: number; vatRate: number }) {
+  const n = Number(price);
+  if (Number.isNaN(n) || n <= 0) return null;
+  const { vat } = splitGrossToNetVat(n, vatRate);
+  const pct = Math.round(vatRate * 100);
+  return (
+    <p className="mt-1 text-xs leading-snug text-zinc-500">
+      Included VAT ({pct}%): {formatPhp(vat)}
+    </p>
+  );
+}
+
 export default function AdminProductsPage() {
-  const { products, setProducts, categories, removeProduct } = usePos();
+  const { products, setProducts, categories, removeProduct, vatRate } = usePos();
   const [modal, setModal] = useState<ModalState>({ open: false });
   const [draft, setDraft] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
@@ -240,7 +253,7 @@ export default function AdminProductsPage() {
                 </select>
               </label>
               <label className="text-sm">
-                <span className="text-zinc-500">Price (ex-VAT)</span>
+                <span className="text-zinc-500">Price (VAT-inclusive)</span>
                 <input
                   type="number"
                   min={0}
@@ -251,6 +264,7 @@ export default function AdminProductsPage() {
                     setDraft((d) => (d ? { ...d, price: Number(e.target.value) } : d))
                   }
                 />
+                <PriceVatHint price={draft.price} vatRate={vatRate} />
               </label>
               <label className="text-sm">
                 <span className="text-zinc-500">Stock on hand</span>

@@ -7,6 +7,7 @@ export type Category = {
 export type ProductVariant = {
   id: string;
   name: string;
+  /** Added to base price; VAT-inclusive (PHP) */
   priceDelta: number;
 };
 
@@ -14,7 +15,7 @@ export type Product = {
   id: string;
   name: string;
   categoryId: string;
-  /** Unit price excluding VAT (PHP) */
+  /** Unit price VAT-inclusive (PHP); VAT is computed from this gross amount */
   price: number;
   barcode?: string;
   sku?: string;
@@ -28,6 +29,7 @@ export type CartLine = {
   productId: string;
   variantId?: string;
   name: string;
+  /** VAT-inclusive unit price (PHP) */
   unitPrice: number;
   qty: number;
 };

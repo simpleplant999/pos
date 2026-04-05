@@ -82,7 +82,7 @@ export function CartAndCheckout() {
     setConfirmError(null);
     setCheckoutMsg(null);
     setCompletingPayment(true);
-    const MIN_MS = 3000;
+    const MIN_MS = 1000;
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         const started = Date.now();
@@ -269,7 +269,7 @@ export function CartAndCheckout() {
 
         <dl className="space-y-0.5 text-[11px] leading-tight">
           <div className="flex justify-between text-zinc-600">
-            <dt>Subtotal</dt>
+            <dt>Subtotal (incl. VAT)</dt>
             <dd className="font-medium tabular-nums text-zinc-900">{formatPhp(totals.subtotal)}</dd>
           </div>
           {totals.discountAmount > 0 ? (
@@ -279,7 +279,7 @@ export function CartAndCheckout() {
             </div>
           ) : null}
           <div className="flex justify-between text-zinc-600">
-            <dt>Net</dt>
+            <dt>Net (ex-VAT)</dt>
             <dd className="tabular-nums">{formatPhp(totals.netBeforeCharges)}</dd>
           </div>
           <div className="flex justify-between text-zinc-600">
@@ -455,7 +455,7 @@ export function CartAndCheckout() {
             </div>
             <div className="space-y-1 border-t border-zinc-100 px-4 py-2 text-xs">
               <div className="flex justify-between text-zinc-600">
-                <span>Subtotal</span>
+                <span>Subtotal (incl. VAT)</span>
                 <span>{formatPhp(totals.subtotal)}</span>
               </div>
               {totals.discountAmount > 0 ? (
@@ -465,7 +465,7 @@ export function CartAndCheckout() {
                 </div>
               ) : null}
               <div className="flex justify-between text-zinc-600">
-                <span>Net</span>
+                <span>Net (ex-VAT)</span>
                 <span>{formatPhp(totals.netBeforeCharges)}</span>
               </div>
               <div className="flex justify-between text-zinc-600">

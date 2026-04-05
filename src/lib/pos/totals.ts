@@ -17,21 +17,32 @@ export function discountAmount(subtotal: number, discount: DiscountState): numbe
   return round2(Math.min(Math.max(0, discount.value), subtotal));
 }
 
+/** Split a VAT-inclusive amount into net (ex-VAT) and VAT portion. */
+export function splitGrossToNetVat(gross: number, vatRate: number): { net: number; vat: number } {
+  if (vatRate <= 0) return { net: round2(gross), vat: 0 };
+  const net = round2(gross / (1 + vatRate));
+  const vat = round2(gross - net);
+  return { net, vat };
+}
+
 export function computeTotals(
   lines: CartLine[],
   discount: DiscountState,
   options: { vatRate: number; serviceEnabled: boolean; serviceRate: number },
 ): TotalsBreakdown {
-  const subtotal = subtotalOf(lines);
-  const disc = discountAmount(subtotal, discount);
-  const netBeforeCharges = round2(Math.max(0, subtotal - disc));
-  const vatAmount = round2(netBeforeCharges * options.vatRate);
+  const grossSubtotal = subtotalOf(lines);
+  const disc = discountAmount(grossSubtotal, discount);
+  const afterDiscountGross = round2(Math.max(0, grossSubtotal - disc));
+  const { net: netBeforeCharges, vat: vatAmount } = splitGrossToNetVat(
+    afterDiscountGross,
+    options.vatRate,
+  );
   const serviceAmount = options.serviceEnabled
     ? round2(netBeforeCharges * options.serviceRate)
     : 0;
-  const total = round2(netBeforeCharges + vatAmount + serviceAmount);
+  const total = round2(afterDiscountGross + serviceAmount);
   return {
-    subtotal: round2(subtotal),
+    subtotal: round2(grossSubtotal),
     discountAmount: disc,
     netBeforeCharges,
     vatAmount,

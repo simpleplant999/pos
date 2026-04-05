@@ -9,15 +9,16 @@ import {
   todayYmd,
 } from "@/lib/dateRange";
 import { formatPhp } from "@/lib/pos/money";
+import type { PaymentMethodId, SaleRecord } from "@/types/pos";
 
 const PREVIEW_MAX = 75;
 
 const SALES_HEADERS = [
   "Sale reference",
   "Date & time",
-  "Subtotal (₱)",
+  "Subtotal incl. VAT (₱)",
   "Discount (₱)",
-  "Net sales (₱)",
+  "Net sales ex-VAT (₱)",
   "VAT (₱)",
   "Service charge (₱)",
   "Total (₱)",
@@ -33,15 +34,15 @@ const LINE_HEADERS = [
   "Sale date & time",
   "Item / description",
   "Quantity",
-  "Unit price (₱)",
-  "Line total (₱)",
+  "Unit price incl. VAT (₱)",
+  "Line total incl. VAT (₱)",
 ] as const;
 
 const INVENTORY_HEADERS = [
   "SKU",
   "Product name",
   "Category",
-  "Unit price ex-VAT (₱)",
+  "Unit price incl. VAT (₱)",
   "Stock on hand",
   "Barcode",
   "Number of variants",
@@ -59,6 +60,21 @@ const LEDGER_HEADERS = [
 
 type TabId = "sales" | "lines" | "inventory" | "movements";
 
+type PaymentFilter = "all" | PaymentMethodId;
+
+const PAYMENT_FILTER_OPTIONS: { value: PaymentFilter; label: string }[] = [
+  { value: "all", label: "All methods" },
+  { value: "cash", label: "Cash" },
+  { value: "card", label: "Card" },
+  { value: "gcash", label: "GCash" },
+  { value: "maya", label: "Maya" },
+];
+
+function saleUsesPayment(sale: SaleRecord, method: PaymentMethodId): boolean {
+  const v = sale.payments[method];
+  return typeof v === "number" && v > 0.0001;
+}
+
 const TABS: { id: TabId; label: string; short: string }[] = [
   { id: "sales", label: "Sales (summary)", short: "Sales" },
   { id: "lines", label: "Sale lines", short: "Lines" },
@@ -70,6 +86,7 @@ export default function AdminReportsPage() {
   const { sales, products, categories, stockLedger } = usePos();
   const [startDate, setStartDate] = useState(todayYmd);
   const [endDate, setEndDate] = useState(todayYmd);
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
   const [activeTab, setActiveTab] = useState<TabId>("sales");
 
   const { startMs, endMs, start, end } = useMemo(
@@ -82,21 +99,26 @@ export default function AdminReportsPage() {
     [sales, startMs, endMs],
   );
 
+  const salesForSummary = useMemo(() => {
+    if (paymentFilter === "all") return filteredSales;
+    return filteredSales.filter((s) => saleUsesPayment(s, paymentFilter));
+  }, [filteredSales, paymentFilter]);
+
   const filteredLedger = useMemo(
     () => stockLedger.filter((e) => timestampInRange(e.at, startMs, endMs)),
     [stockLedger, startMs, endMs],
   );
 
   const summary = useMemo(() => {
-    const totalRevenue = filteredSales.reduce((acc, x) => acc + x.total, 0);
+    const totalRevenue = salesForSummary.reduce((acc, x) => acc + x.total, 0);
     const byPayment: Record<string, number> = {};
-    for (const sale of filteredSales) {
+    for (const sale of salesForSummary) {
       for (const [k, v] of Object.entries(sale.payments)) {
         if (v && v > 0) byPayment[k] = (byPayment[k] ?? 0) + v;
       }
     }
     const productQty: Record<string, { name: string; qty: number; revenue: number }> = {};
-    for (const sale of filteredSales) {
+    for (const sale of salesForSummary) {
       for (const line of sale.lines) {
         const key = `${line.productId}:${line.variantId ?? ""}`;
         if (!productQty[key]) {
@@ -114,10 +136,10 @@ export default function AdminReportsPage() {
       totalRevenue,
       byPayment,
       topProducts,
-      count: filteredSales.length,
+      count: salesForSummary.length,
       lowStock,
     };
-  }, [filteredSales, products]);
+  }, [salesForSummary, products]);
 
   const paymentLabels: Record<string, string> = {
     cash: "Cash",
@@ -138,7 +160,7 @@ export default function AdminReportsPage() {
 
   const salesRows = useMemo(
     () =>
-      filteredSales.map((s) => [
+      salesForSummary.map((s) => [
         s.id,
         new Date(s.at).toLocaleString("en-PH"),
         s.subtotal,
@@ -153,19 +175,19 @@ export default function AdminReportsPage() {
         s.payments.maya ?? 0,
         s.changeDue,
       ]),
-    [filteredSales],
+    [salesForSummary],
   );
 
   const lineRows = useMemo(() => {
     const rows: (string | number)[][] = [];
-    for (const s of filteredSales) {
+    for (const s of salesForSummary) {
       const d = new Date(s.at).toLocaleString("en-PH");
       for (const l of s.lines) {
         rows.push([s.id, d, l.name, l.qty, l.unitPrice, l.qty * l.unitPrice]);
       }
     }
     return rows;
-  }, [filteredSales]);
+  }, [salesForSummary]);
 
   const inventoryRows = useMemo(
     () =>
@@ -200,7 +222,7 @@ export default function AdminReportsPage() {
 
   function exportSalesCsv() {
     const rows: (string | number)[][] = [[...SALES_HEADERS]];
-    for (const s of filteredSales) {
+    for (const s of salesForSummary) {
       rows.push([
         s.id,
         new Date(s.at).toISOString(),
@@ -217,18 +239,20 @@ export default function AdminReportsPage() {
         s.changeDue,
       ]);
     }
-    downloadCsv(`touchserve-sales_${start}_${end}_${dateStamp()}.csv`, rows);
+    const pay = paymentFilter === "all" ? "" : `_${paymentFilter}`;
+    downloadCsv(`touchserve-sales_${start}_${end}${pay}_${dateStamp()}.csv`, rows);
   }
 
   function exportSaleLinesCsv() {
     const rows: (string | number)[][] = [[...LINE_HEADERS]];
-    for (const s of filteredSales) {
+    for (const s of salesForSummary) {
       const d = new Date(s.at).toISOString();
       for (const l of s.lines) {
         rows.push([s.id, d, l.name, l.qty, l.unitPrice, l.qty * l.unitPrice]);
       }
     }
-    downloadCsv(`touchserve-sale-lines_${start}_${end}_${dateStamp()}.csv`, rows);
+    const pay = paymentFilter === "all" ? "" : `_${paymentFilter}`;
+    downloadCsv(`touchserve-sale-lines_${start}_${end}${pay}_${dateStamp()}.csv`, rows);
   }
 
   function exportInventoryCsv() {
@@ -281,6 +305,11 @@ export default function AdminReportsPage() {
     }
   }
 
+  const salesRangeNote =
+    paymentFilter === "all"
+      ? "Filtered by date range above."
+      : `Filtered by date range and payment: ${paymentLabels[paymentFilter] ?? paymentFilter} (sale included if that tender was used).`;
+
   const tabMeta: Record<
     TabId,
     { title: string; description: string; count: number; rangeNote: string }
@@ -289,14 +318,14 @@ export default function AdminReportsPage() {
       title: "Sales (summary)",
       description:
         "One row per completed sale in the selected range: amounts, tax, and split tender.",
-      count: filteredSales.length,
-      rangeNote: "Filtered by date range above.",
+      count: salesForSummary.length,
+      rangeNote: salesRangeNote,
     },
     lines: {
       title: "Sale lines",
       description: "Each line item sold in the range, with sale reference and pricing.",
       count: lineRows.length,
-      rangeNote: "Filtered by date range above.",
+      rangeNote: salesRangeNote,
     },
     inventory: {
       title: "Inventory snapshot",
@@ -345,17 +374,45 @@ export default function AdminReportsPage() {
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </label>
+            <label className="text-sm">
+              <span className="text-zinc-500">Payment (sales summary)</span>
+              <select
+                className="mt-1 block min-h-11 min-w-[11rem] rounded-xl border border-zinc-200 bg-white px-3"
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value as PaymentFilter)}
+                aria-label="Filter sales by payment method"
+              >
+                {PAYMENT_FILTER_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <p className="text-sm text-zinc-600">
               Showing: <span className="font-medium text-zinc-900">{rangeLabel}</span>
             </p>
           </div>
+          <p className="mt-3 text-xs leading-snug text-zinc-500">
+            Payment filter applies to revenue, transaction count, sales and line tables, CSV exports for
+            those tabs, and payment and top-seller breakdowns. Inventory and stock movements stay
+            date-only.
+          </p>
         </section>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-zinc-200 bg-white p-4">
             <p className="text-sm text-zinc-500">Revenue (range)</p>
             <p className="text-2xl font-bold text-emerald-700">{formatPhp(summary.totalRevenue)}</p>
-            <p className="text-xs text-zinc-500">{summary.count} transactions</p>
+            <p className="text-xs text-zinc-500">
+              {summary.count} transaction{summary.count === 1 ? "" : "s"}
+              {paymentFilter !== "all" ? (
+                <span>
+                  {" "}
+                  · {paymentLabels[paymentFilter]} only
+                </span>
+              ) : null}
+            </p>
           </div>
           <div className="rounded-2xl border border-zinc-200 bg-white p-4">
             <p className="text-sm text-zinc-500">Range</p>
@@ -459,7 +516,11 @@ export default function AdminReportsPage() {
 
         <section className="rounded-2xl border border-zinc-200 bg-white p-4">
           <h2 className="text-lg font-semibold text-zinc-900">Revenue by payment method</h2>
-          <p className="mt-1 text-xs text-zinc-500">Within selected date range</p>
+          <p className="mt-1 text-xs text-zinc-500">
+            {paymentFilter === "all"
+              ? "Within selected date range (all sales)"
+              : `Within selected date range · sales that used ${paymentLabels[paymentFilter]}`}
+          </p>
           <ul className="mt-3 space-y-2">
             {Object.keys(summary.byPayment).length === 0 ? (
               <li className="text-sm text-zinc-500">No sales in this range.</li>
@@ -476,7 +537,11 @@ export default function AdminReportsPage() {
 
         <section className="rounded-2xl border border-zinc-200 bg-white p-4">
           <h2 className="text-lg font-semibold text-zinc-900">Top sellers (by line revenue)</h2>
-          <p className="mt-1 text-xs text-zinc-500">Within selected date range</p>
+          <p className="mt-1 text-xs text-zinc-500">
+            {paymentFilter === "all"
+              ? "Within selected date range (all sales)"
+              : `Within selected date range · sales that used ${paymentLabels[paymentFilter]}`}
+          </p>
           <ul className="mt-3 space-y-2">
             {summary.topProducts.length === 0 ? (
               <li className="text-sm text-zinc-500">No sales in this range.</li>

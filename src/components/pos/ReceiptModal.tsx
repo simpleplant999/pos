@@ -50,7 +50,7 @@ export function ReceiptModal({ sale, onClose }: Props) {
 
         <dl className="mt-4 space-y-1 border-t border-dashed border-zinc-300 pt-4 text-sm">
           <div className="flex justify-between">
-            <dt>Subtotal</dt>
+            <dt>Subtotal (incl. VAT)</dt>
             <dd>{formatPhp(sale.subtotal)}</dd>
           </div>
           {sale.discountAmount > 0 ? (
@@ -60,7 +60,7 @@ export function ReceiptModal({ sale, onClose }: Props) {
             </div>
           ) : null}
           <div className="flex justify-between">
-            <dt>Net</dt>
+            <dt>Net (ex-VAT)</dt>
             <dd>{formatPhp(sale.netBeforeCharges)}</dd>
           </div>
           <div className="flex justify-between">
