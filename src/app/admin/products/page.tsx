@@ -285,7 +285,7 @@ export default function AdminProductsPage() {
                   </button>
                 </div>
                 <p className="mt-1 text-xs text-zinc-500">
-                  Leave empty for a single SKU. Two or more rows show a picker on the POS.
+                  Leave empty for a single SKU. Two or more rows show a picker on the register.
                 </p>
                 <ul className="mt-2 flex flex-col gap-2">
                   {(draft.variants ?? []).map((v, i) => (

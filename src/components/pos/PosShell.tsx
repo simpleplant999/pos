@@ -27,7 +27,7 @@ export function PosShell() {
     <div className="flex h-[100dvh] flex-col bg-zinc-100">
       <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-zinc-200 bg-white px-3 py-2">
         <h1 className="mr-2 text-xl font-bold tracking-tight text-zinc-900">
-          POS
+          TouchServe
         </h1>
         <form onSubmit={onBarcodeSubmit} className="flex min-w-[200px] flex-1 items-center gap-2">
           <input

@@ -62,7 +62,7 @@ export default function AdminCategoriesPage() {
       <div>
         <h1 className="text-xl font-bold text-zinc-900">Categories</h1>
         <p className="mt-1 text-sm text-zinc-600">
-          Categories drive the POS filter chips and product assignments. You cannot delete a category
+          Categories drive the register filter chips and product assignments. You cannot delete a category
           while any product still uses it.
         </p>
       </div>

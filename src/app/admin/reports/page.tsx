@@ -217,7 +217,7 @@ export default function AdminReportsPage() {
         s.changeDue,
       ]);
     }
-    downloadCsv(`pos-sales_${start}_${end}_${dateStamp()}.csv`, rows);
+    downloadCsv(`touchserve-sales_${start}_${end}_${dateStamp()}.csv`, rows);
   }
 
   function exportSaleLinesCsv() {
@@ -228,7 +228,7 @@ export default function AdminReportsPage() {
         rows.push([s.id, d, l.name, l.qty, l.unitPrice, l.qty * l.unitPrice]);
       }
     }
-    downloadCsv(`pos-sale-lines_${start}_${end}_${dateStamp()}.csv`, rows);
+    downloadCsv(`touchserve-sale-lines_${start}_${end}_${dateStamp()}.csv`, rows);
   }
 
   function exportInventoryCsv() {
@@ -245,7 +245,7 @@ export default function AdminReportsPage() {
         p.variants?.length ?? 0,
       ]);
     }
-    downloadCsv(`pos-inventory_${dateStamp()}.csv`, rows);
+    downloadCsv(`touchserve-inventory_${dateStamp()}.csv`, rows);
   }
 
   function exportStockLedgerCsv() {
@@ -261,7 +261,7 @@ export default function AdminReportsPage() {
         e.stockAfter,
       ]);
     }
-    downloadCsv(`pos-stock-movements_${start}_${end}_${dateStamp()}.csv`, rows);
+    downloadCsv(`touchserve-stock-movements_${start}_${end}_${dateStamp()}.csv`, rows);
   }
 
   function exportActiveTab() {

@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "POS MVP",
-  description: "Philippines-friendly POS frontend demo",
+  title: "TouchServe",
+  description: "TouchServe — point of sale for stores and restaurants",
 };
 
 export default function RootLayout({

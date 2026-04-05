@@ -30,7 +30,7 @@ export function ReceiptModal({ sale, onClose }: Props) {
           Receipt preview
         </h2>
         <p className="mt-1 text-center text-xs text-zinc-500">
-          Demo store · MVP (not BIR OR)
+          TouchServe · sample receipt (not BIR OR)
         </p>
         <p className="mt-2 text-center text-sm text-zinc-600">
           {date.toLocaleString("en-PH")}
