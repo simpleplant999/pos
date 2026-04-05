@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { useAdminAuth } from "@/context/AdminAuthProvider";
 import { usePos } from "@/context/PosProvider";
 import { formatPhp } from "@/lib/pos/money";
 import { CartAndCheckout } from "./CartAndCheckout";
 import { ProductCatalog } from "./ProductCatalog";
 
 export function PosShell() {
+  const { isAuthed, logout } = useAdminAuth();
   const { applyBarcode, heldOrders, resumeOrder, deleteHeldOrder } = usePos();
   const [barcode, setBarcode] = useState("");
   const [heldOpen, setHeldOpen] = useState(false);
@@ -63,25 +65,44 @@ export function PosShell() {
             </span>
           ) : null}
         </button>
-        <nav className="flex flex-wrap gap-2">
-          <Link
-            href="/admin/products"
-            className="flex min-h-11 items-center rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-900"
-          >
-            Products
-          </Link>
-          <Link
-            href="/admin/categories"
-            className="flex min-h-11 items-center rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-900"
-          >
-            Categories
-          </Link>
-          <Link
-            href="/admin/reports"
-            className="flex min-h-11 items-center rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-900"
-          >
-            Reports
-          </Link>
+        <nav className="flex flex-wrap gap-2" aria-label="Back office">
+          {!isAuthed ? (
+            <Link
+              href="/admin/products"
+              className="flex min-h-11 items-center rounded-xl bg-zinc-900 px-3 text-sm font-semibold text-white hover:bg-zinc-800"
+            >
+              Admin
+            </Link>
+          ) : null}
+          {isAuthed ? (
+            <>
+              <Link
+                href="/admin/products"
+                className="flex min-h-11 items-center rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-900"
+              >
+                Products
+              </Link>
+              <Link
+                href="/admin/categories"
+                className="flex min-h-11 items-center rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-900"
+              >
+                Categories
+              </Link>
+              <Link
+                href="/admin/reports"
+                className="flex min-h-11 items-center rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-900"
+              >
+                Reports
+              </Link>
+              <button
+                type="button"
+                onClick={logout}
+                className="min-h-11 rounded-xl border border-zinc-200 px-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+              >
+                Sign out
+              </button>
+            </>
+          ) : null}
         </nav>
       </header>
 
