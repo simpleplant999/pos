@@ -78,7 +78,7 @@ export function ProductCatalog() {
       />
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <div className="grid grid-cols-3 gap-2 pb-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10">
+        <div className="grid grid-cols-4 gap-2 pb-4">
           {filtered.map((p) => {
             const cat = categories.find((c) => c.id === p.categoryId);
             return (
