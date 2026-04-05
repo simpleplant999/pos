@@ -20,9 +20,10 @@ function emptyVariants(): ProductVariant[] {
 }
 
 export default function AdminProductsPage() {
-  const { products, setProducts, categories } = usePos();
+  const { products, setProducts, categories, removeProduct } = usePos();
   const [modal, setModal] = useState<ModalState>({ open: false });
   const [draft, setDraft] = useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   function openCreate() {
     const cat = categories[0];
@@ -128,6 +129,15 @@ export default function AdminProductsPage() {
     setDraft({ ...draft, variants: draft.variants.filter((_, j) => j !== i) });
   }
 
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    removeProduct(deleteTarget.id);
+    if (modal.open && modal.mode === "edit" && modal.productId === deleteTarget.id) {
+      closeModal();
+    }
+    setDeleteTarget(null);
+  }
+
   return (
     <>
       <main className="mx-auto max-w-4xl p-4">
@@ -153,7 +163,7 @@ export default function AdminProductsPage() {
                 <th className="p-3 font-semibold">Stock</th>
                 <th className="p-3 font-semibold">Variants</th>
                 <th className="p-3 font-semibold">SKU / Barcode</th>
-                <th className="p-3 font-semibold"> </th>
+                <th className="p-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -176,13 +186,22 @@ export default function AdminProductsPage() {
                     {p.sku ?? "—"} / {p.barcode ?? "—"}
                   </td>
                   <td className="p-3">
-                    <button
-                      type="button"
-                      className="rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-semibold"
-                      onClick={() => openEdit(p)}
-                    >
-                      Edit
-                    </button>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        className="rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-semibold"
+                        onClick={() => openEdit(p)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600"
+                        onClick={() => setDeleteTarget(p)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -337,6 +356,35 @@ export default function AdminProductsPage() {
                 onClick={saveProduct}
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {deleteTarget ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <h2 className="text-lg font-semibold text-zinc-900">Delete product?</h2>
+            <p className="mt-2 text-sm text-zinc-600">
+              <span className="font-medium text-zinc-900">{deleteTarget.name}</span> will be removed
+              from the catalog. Lines for this item are removed from the register cart and from held
+              orders (empty holds are discarded). This session only — not reversible after reload.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                className="min-h-11 flex-1 rounded-xl bg-zinc-200 text-sm font-semibold"
+                onClick={() => setDeleteTarget(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="min-h-11 flex-1 rounded-xl bg-red-600 text-sm font-semibold text-white"
+                onClick={confirmDelete}
+              >
+                Delete
               </button>
             </div>
           </div>

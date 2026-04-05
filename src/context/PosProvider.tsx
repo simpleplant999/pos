@@ -31,6 +31,7 @@ type PosContextValue = {
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   products: Product[];
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
+  removeProduct: (productId: string) => void;
   categoryId: string | null;
   setCategoryId: (id: string | null) => void;
   search: string;
@@ -57,6 +58,7 @@ type PosContextValue = {
   sales: SaleRecord[];
   lastSale: SaleRecord | null;
   clearLastSale: () => void;
+  openReceiptPreview: (sale: SaleRecord) => void;
   applyBarcode: (code: string) => boolean;
   stockLedger: StockLedgerEntry[];
   cartNotice: string | null;
@@ -179,6 +181,20 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setCartLines((prev) => prev.filter((l) => l.id !== lineId));
   }, []);
 
+  const removeProduct = useCallback((productId: string) => {
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
+    setCartLines((prev) => prev.filter((l) => l.productId !== productId));
+    setHeldOrders((prev) =>
+      prev
+        .map((h) => ({
+          ...h,
+          lines: h.lines.filter((l) => l.productId !== productId),
+        }))
+        .filter((h) => h.lines.length > 0),
+    );
+    setCartNotice(null);
+  }, []);
+
   const clearCart = useCallback(() => {
     setCartLines([]);
     setDiscount({ kind: "none" });
@@ -273,7 +289,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setStockLedger((L) => [...ledgerLines, ...L]);
 
     setSales((s) => [sale, ...s]);
-    setLastSale(sale);
     clearCart();
     return { ok: true, sale };
   }, [cartLines, products, paymentDraft, totals, discount, clearCart]);
@@ -298,12 +313,17 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   const clearLastSale = useCallback(() => setLastSale(null), []);
 
+  const openReceiptPreview = useCallback((sale: SaleRecord) => {
+    setLastSale(sale);
+  }, []);
+
   const value = useMemo<PosContextValue>(
     () => ({
       categories,
       setCategories,
       products,
       setProducts,
+      removeProduct,
       categoryId,
       setCategoryId,
       search,
@@ -330,6 +350,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       sales,
       lastSale,
       clearLastSale,
+      openReceiptPreview,
       applyBarcode,
       stockLedger,
       cartNotice,
@@ -338,6 +359,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     [
       categories,
       products,
+      removeProduct,
       categoryId,
       search,
       cartLines,
@@ -358,6 +380,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       sales,
       lastSale,
       clearLastSale,
+      openReceiptPreview,
       applyBarcode,
       stockLedger,
       cartNotice,

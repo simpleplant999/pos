@@ -32,6 +32,7 @@ export function CartAndCheckout() {
     completeSale,
     lastSale,
     clearLastSale,
+    openReceiptPreview,
     cartNotice,
     clearCartNotice,
   } = pos;
@@ -43,6 +44,7 @@ export function CartAndCheckout() {
   const [checkoutMsg, setCheckoutMsg] = useState<string | null>(null);
   const [confirmPayOpen, setConfirmPayOpen] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [completingPayment, setCompletingPayment] = useState(false);
 
   const paid = useMemo(() => sumPayments(paymentDraft), [paymentDraft]);
   const remaining = Math.max(0, round2(totals.total - paid));
@@ -70,19 +72,34 @@ export function CartAndCheckout() {
   }
 
   function closePaymentConfirm() {
+    if (completingPayment) return;
     setConfirmPayOpen(false);
     setConfirmError(null);
   }
 
   function confirmPayment() {
+    if (completingPayment || remaining > 0.01) return;
     setConfirmError(null);
     setCheckoutMsg(null);
-    const r = completeSale();
-    if (!r.ok) {
-      setConfirmError(r.reason);
-      return;
-    }
-    setConfirmPayOpen(false);
+    setCompletingPayment(true);
+    const MIN_MS = 3000;
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const started = Date.now();
+        const r = completeSale();
+        const elapsed = Date.now() - started;
+        const rest = Math.max(0, MIN_MS - elapsed);
+        window.setTimeout(() => {
+          setCompletingPayment(false);
+          if (!r.ok) {
+            setConfirmError(r.reason);
+            return;
+          }
+          setConfirmPayOpen(false);
+          openReceiptPreview(r.sale);
+        }, rest);
+      });
+    });
   }
 
   return (
@@ -400,8 +417,19 @@ export function CartAndCheckout() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="confirm-pay-title"
+          aria-busy={completingPayment}
         >
-          <div className="max-h-[90vh] w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
+          <div className="relative max-h-[90vh] w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
+            {completingPayment ? (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white/90 backdrop-blur-[2px]">
+                <div
+                  className="h-10 w-10 animate-spin rounded-full border-[3px] border-zinc-200 border-t-emerald-600"
+                  aria-hidden
+                />
+                <p className="text-sm font-semibold text-zinc-800">Processing payment…</p>
+                <p className="text-xs text-zinc-500">Please wait</p>
+              </div>
+            ) : null}
             <div className="border-b border-zinc-200 px-4 py-3">
               <h2 id="confirm-pay-title" className="text-base font-bold text-zinc-900">
                 Confirm payment
@@ -494,18 +522,19 @@ export function CartAndCheckout() {
             <div className="flex gap-2 border-t border-zinc-200 p-3">
               <button
                 type="button"
-                className="min-h-10 flex-1 rounded-lg border border-zinc-200 text-sm font-semibold text-zinc-800"
+                disabled={completingPayment}
+                className="min-h-10 flex-1 rounded-lg border border-zinc-200 text-sm font-semibold text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={closePaymentConfirm}
               >
                 Back
               </button>
               <button
                 type="button"
-                disabled={remaining > 0.01}
+                disabled={remaining > 0.01 || completingPayment}
                 className="min-h-10 flex-1 rounded-lg bg-emerald-600 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
                 onClick={confirmPayment}
               >
-                Confirm
+                {completingPayment ? "…" : "Confirm"}
               </button>
             </div>
           </div>
